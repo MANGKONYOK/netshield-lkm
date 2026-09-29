@@ -1,0 +1,16 @@
+# Linux Kernel Module Build Artifacts
+*.o
+*.ko
+*.mod
+*.mod.c
+*.mod.o
+*.order
+*.symvers
+.*.cmd
+.tmp_versions/
+
+# Editor & IDE settings
+.vscode/
+.idea/
+*.swp
+*~
