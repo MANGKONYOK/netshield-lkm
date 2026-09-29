@@ -51,48 +51,48 @@ Developed for **CPE 333 Operating Systems**, Department of Computer Engineering,
 
 ```mermaid
 flowchart TD
-    Start([Packet Ingress at NF_INET_LOCAL_IN]) --> CheckSKB{skb != NULL?}
+    Start(["Packet Ingress at NF_INET_LOCAL_IN"]) --> CheckSKB{"skb != NULL?"}
     
-    CheckSKB -- No --> VerdictAccept[NF_ACCEPT: Fail-Open]
-    CheckSKB -- Yes --> CheckLoopback{Interface == 'lo' AND allow_loopback == false?}
+    CheckSKB -->|No| VerdictAccept["NF_ACCEPT: Fail-Open"]
+    CheckSKB -->|Yes| CheckLoopback{"Interface is lo AND allow_loopback is false?"}
     
-    CheckLoopback -- Yes --> VerdictAccept
-    CheckLoopback -- No --> CheckIPLen{skb->len >= sizeof(struct iphdr)?}
+    CheckLoopback -->|Yes| VerdictAccept
+    CheckLoopback -->|No| CheckIPLen{"skb length >= sizeof iphdr?"}
     
-    CheckIPLen -- No --> VerdictAccept
-    CheckIPLen -- Yes --> CheckIPH{iph != NULL AND iph->ihl >= 5?}
+    CheckIPLen -->|No| VerdictAccept
+    CheckIPLen -->|Yes| CheckIPH{"iph != NULL AND iph ihl >= 5?"}
     
-    CheckIPH -- No --> VerdictAccept
-    CheckIPH -- Yes --> CheckTotalLen{skb->len >= iph->ihl*4 AND ntohs(tot_len) >= iph->ihl*4?}
+    CheckIPH -->|No| VerdictAccept
+    CheckIPH -->|Yes| CheckTotalLen{"skb length and tot_len valid?"}
     
-    CheckTotalLen -- No --> VerdictAccept
-    CheckTotalLen -- Yes --> CheckSSH{Protocol == TCP AND (sport==22 OR dport==22)?}
+    CheckTotalLen -->|No| VerdictAccept
+    CheckTotalLen -->|Yes| CheckSSH{"Protocol is TCP AND sport/dport is 22?"}
     
-    CheckSSH -- Yes --> VerdictAccept
-    CheckSSH -- No --> CheckBlacklist{blacklist_ip configured AND iph->saddr == blocked_ip?}
+    CheckSSH -->|Yes| VerdictAccept
+    CheckSSH -->|No| CheckBlacklist{"blacklist_ip set AND saddr matches?"}
     
-    CheckBlacklist -- Yes --> LogBlacklist[LOG_DROP_RATELIMITED: Blacklist Drop]
-    LogBlacklist --> VerdictDrop[NF_DROP]
+    CheckBlacklist -->|Yes| LogBlacklist["LOG_DROP_RATELIMITED: Blacklist Drop"]
+    LogBlacklist --> VerdictDrop["NF_DROP"]
     
-    CheckBlacklist -- No --> CheckICMP{drop_icmp == true AND Protocol == ICMP?}
+    CheckBlacklist -->|No| CheckICMP{"drop_icmp is true AND Protocol is ICMP?"}
     
-    CheckICMP -- Yes --> ExtractICMP{skb_header_pointer for icmphdr valid?}
-    ExtractICMP -- No --> VerdictAccept
-    ExtractICMP -- Yes --> CheckEcho{icmph->type == ICMP_ECHO?}
-    CheckEcho -- Yes --> LogICMP[LOG_DROP_RATELIMITED: ICMP Echo Drop]
+    CheckICMP -->|Yes| ExtractICMP{"Extract icmphdr via skb_header_pointer?"}
+    ExtractICMP -->|No| VerdictAccept
+    ExtractICMP -->|Yes| CheckEcho{"icmph type is ICMP_ECHO?"}
+    CheckEcho -->|Yes| LogICMP["LOG_DROP_RATELIMITED: ICMP Echo Drop"]
     LogICMP --> VerdictDrop
-    CheckEcho -- No --> CheckTCP
+    CheckEcho -->|No| CheckTCP
     
-    CheckICMP -- No --> CheckTCP{block_port > 0 AND Protocol == TCP?}
+    CheckICMP -->|No| CheckTCP{"block_port > 0 AND Protocol is TCP?"}
     
-    CheckTCP -- Yes --> ExtractTCP{skb_header_pointer for tcphdr valid?}
-    ExtractTCP -- No --> VerdictAccept
-    ExtractTCP -- Yes --> CheckPort{ntohs(tcph->dest) == block_port?}
-    CheckPort -- Yes --> LogTCP[LOG_DROP_RATELIMITED: TCP Port Drop]
+    CheckTCP -->|Yes| ExtractTCP{"Extract tcphdr via skb_header_pointer?"}
+    ExtractTCP -->|No| VerdictAccept
+    ExtractTCP -->|Yes| CheckPort{"ntohs tcph dest == block_port?"}
+    CheckPort -->|Yes| LogTCP["LOG_DROP_RATELIMITED: TCP Port Drop"]
     LogTCP --> VerdictDrop
-    CheckPort -- No --> VerdictAccept
+    CheckPort -->|No| VerdictAccept
     
-    CheckTCP -- No --> VerdictAccept
+    CheckTCP -->|No| VerdictAccept
 ```
 
 ---
